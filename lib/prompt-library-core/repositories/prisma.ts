@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, Prompt as PrismaPrompt, Folder as PrismaFolder, Category as PrismaCategory } from '@prisma/client';
 import type {
   IPromptRepository,
   IFolderRepository,
@@ -8,11 +8,49 @@ import type {
 } from './index';
 import type { Prompt, Folder, Category, OptimizationVersion } from '../types/index';
 
+function toPrompt(row: PrismaPrompt): Prompt {
+  return {
+    id: row.id,
+    userId: row.userId,
+    folderId: row.folderId ?? undefined,
+    title: row.title,
+    body: row.body,
+    notes: row.notes ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function toFolder(row: PrismaFolder): Folder {
+  return {
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    description: row.description ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function toCategory(row: PrismaCategory): Category {
+  return {
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    color: row.color ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
 export class PrismaPromptRepository implements IPromptRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async create(userId: string, data: { title: string; body: string; folderId?: string; notes?: string }): Promise<Prompt> {
-    return this.prisma.prompt.create({
+  async create(
+    userId: string,
+    data: { title: string; body: string; folderId?: string; notes?: string }
+  ): Promise<Prompt> {
+    const row = await this.prisma.prompt.create({
       data: {
         userId,
         title: data.title,
@@ -20,36 +58,43 @@ export class PrismaPromptRepository implements IPromptRepository {
         notes: data.notes,
         folderId: data.folderId,
       },
-    }) as Promise<Prompt>;
+    });
+    return toPrompt(row);
   }
 
   async findById(id: string, userId: string): Promise<Prompt | null> {
-    return (this.prisma.prompt.findUnique({
-      where: { id },
-    }) as Promise<any>).then((p) => (p?.userId === userId ? p : null));
+    const row = await this.prisma.prompt.findUnique({ where: { id } });
+    if (!row || row.userId !== userId) return null;
+    return toPrompt(row);
   }
 
   async findAllByUser(userId: string): Promise<Prompt[]> {
-    return this.prisma.prompt.findMany({
+    const rows = await this.prisma.prompt.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
-    }) as Promise<Prompt[]>;
+    });
+    return rows.map(toPrompt);
   }
 
   async findByFolder(folderId: string, userId: string): Promise<Prompt[]> {
-    return this.prisma.prompt.findMany({
+    const rows = await this.prisma.prompt.findMany({
       where: { folderId, userId },
       orderBy: { updatedAt: 'desc' },
-    }) as Promise<Prompt[]>;
+    });
+    return rows.map(toPrompt);
   }
 
-  async update(id: string, userId: string, data: Partial<Omit<Prompt, 'id' | 'userId' | 'createdAt'>>): Promise<Prompt> {
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<Omit<Prompt, 'id' | 'userId' | 'createdAt'>>
+  ): Promise<Prompt> {
     const existing = await this.findById(id, userId);
     if (!existing) {
       throw new Error('Prompt not found');
     }
 
-    return this.prisma.prompt.update({
+    const row = await this.prisma.prompt.update({
       where: { id },
       data: {
         title: data.title,
@@ -57,7 +102,8 @@ export class PrismaPromptRepository implements IPromptRepository {
         notes: data.notes,
         folderId: data.folderId,
       },
-    }) as Promise<Prompt>;
+    });
+    return toPrompt(row);
   }
 
   async delete(id: string, userId: string): Promise<void> {
@@ -66,18 +112,15 @@ export class PrismaPromptRepository implements IPromptRepository {
       throw new Error('Prompt not found');
     }
 
-    await this.prisma.prompt.delete({
-      where: { id },
-    });
+    await this.prisma.prompt.delete({ where: { id } });
   }
 
   async search(userId: string, query: string): Promise<Prompt[]> {
-    const prompts = await this.prisma.prompt.findMany({
-      where: { userId },
-    });
-
+    const rows = await this.prisma.prompt.findMany({ where: { userId } });
     const lowerQuery = query.toLowerCase();
-    return prompts.filter((p) => p.title.toLowerCase().includes(lowerQuery) || p.body.toLowerCase().includes(lowerQuery));
+    return rows
+      .filter((p) => p.title.toLowerCase().includes(lowerQuery) || p.body.toLowerCase().includes(lowerQuery))
+      .map(toPrompt);
   }
 }
 
@@ -85,41 +128,48 @@ export class PrismaFolderRepository implements IFolderRepository {
   constructor(private prisma: PrismaClient) {}
 
   async create(userId: string, data: { name: string; description?: string }): Promise<Folder> {
-    return this.prisma.folder.create({
+    const row = await this.prisma.folder.create({
       data: {
         userId,
         name: data.name,
         description: data.description,
       },
-    }) as Promise<Folder>;
+    });
+    return toFolder(row);
   }
 
   async findById(id: string, userId: string): Promise<Folder | null> {
-    return (this.prisma.folder.findUnique({
-      where: { id },
-    }) as Promise<any>).then((f) => (f?.userId === userId ? f : null));
+    const row = await this.prisma.folder.findUnique({ where: { id } });
+    if (!row || row.userId !== userId) return null;
+    return toFolder(row);
   }
 
   async findAllByUser(userId: string): Promise<Folder[]> {
-    return this.prisma.folder.findMany({
+    const rows = await this.prisma.folder.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
-    }) as Promise<Folder[]>;
+    });
+    return rows.map(toFolder);
   }
 
-  async update(id: string, userId: string, data: Partial<Omit<Folder, 'id' | 'userId' | 'createdAt'>>): Promise<Folder> {
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<Omit<Folder, 'id' | 'userId' | 'createdAt'>>
+  ): Promise<Folder> {
     const existing = await this.findById(id, userId);
     if (!existing) {
       throw new Error('Folder not found');
     }
 
-    return this.prisma.folder.update({
+    const row = await this.prisma.folder.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
       },
-    }) as Promise<Folder>;
+    });
+    return toFolder(row);
   }
 
   async delete(id: string, userId: string): Promise<void> {
@@ -128,9 +178,7 @@ export class PrismaFolderRepository implements IFolderRepository {
       throw new Error('Folder not found');
     }
 
-    await this.prisma.folder.delete({
-      where: { id },
-    });
+    await this.prisma.folder.delete({ where: { id } });
   }
 }
 
@@ -138,41 +186,48 @@ export class PrismaCategoryRepository implements ICategoryRepository {
   constructor(private prisma: PrismaClient) {}
 
   async create(userId: string, data: { name: string; color?: string }): Promise<Category> {
-    return this.prisma.category.create({
+    const row = await this.prisma.category.create({
       data: {
         userId,
         name: data.name,
         color: data.color,
       },
-    }) as Promise<Category>;
+    });
+    return toCategory(row);
   }
 
   async findById(id: string, userId: string): Promise<Category | null> {
-    return (this.prisma.category.findUnique({
-      where: { id },
-    }) as Promise<any>).then((c) => (c?.userId === userId ? c : null));
+    const row = await this.prisma.category.findUnique({ where: { id } });
+    if (!row || row.userId !== userId) return null;
+    return toCategory(row);
   }
 
   async findAllByUser(userId: string): Promise<Category[]> {
-    return this.prisma.category.findMany({
+    const rows = await this.prisma.category.findMany({
       where: { userId },
       orderBy: { name: 'asc' },
-    }) as Promise<Category[]>;
+    });
+    return rows.map(toCategory);
   }
 
-  async update(id: string, userId: string, data: Partial<Omit<Category, 'id' | 'userId' | 'createdAt'>>): Promise<Category> {
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<Omit<Category, 'id' | 'userId' | 'createdAt'>>
+  ): Promise<Category> {
     const existing = await this.findById(id, userId);
     if (!existing) {
       throw new Error('Category not found');
     }
 
-    return this.prisma.category.update({
+    const row = await this.prisma.category.update({
       where: { id },
       data: {
         name: data.name,
         color: data.color,
       },
-    }) as Promise<Category>;
+    });
+    return toCategory(row);
   }
 
   async delete(id: string, userId: string): Promise<void> {
@@ -181,37 +236,38 @@ export class PrismaCategoryRepository implements ICategoryRepository {
       throw new Error('Category not found');
     }
 
-    await this.prisma.category.delete({
-      where: { id },
-    });
+    await this.prisma.category.delete({ where: { id } });
   }
 
-  async addToPrompt(promptId: string, categoryId: string, userId: string): Promise<void> {
+  async addToPrompt(promptId: string, categoryId: string, _userId: string): Promise<void> {
     await this.prisma.promptCategory.create({
       data: { promptId, categoryId },
     });
   }
 
-  async removeFromPrompt(promptId: string, categoryId: string, userId: string): Promise<void> {
+  async removeFromPrompt(promptId: string, categoryId: string, _userId: string): Promise<void> {
     await this.prisma.promptCategory.delete({
       where: { promptId_categoryId: { promptId, categoryId } },
     });
   }
 
-  async getPromptCategories(promptId: string, userId: string): Promise<Category[]> {
-    const categories = await this.prisma.promptCategory.findMany({
+  async getPromptCategories(promptId: string, _userId: string): Promise<Category[]> {
+    const links = await this.prisma.promptCategory.findMany({
       where: { promptId },
       include: { category: true },
     });
-
-    return categories.map((pc) => pc.category) as Promise<Category[]>;
+    return links.map((link) => toCategory(link.category));
   }
 }
 
 export class PrismaOptimizationRepository implements IOptimizationRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async create(promptId: string, userId: string, data: { originalBody: string; optimizedBody: string; explanation: string }): Promise<OptimizationVersion> {
+  async create(
+    promptId: string,
+    userId: string,
+    data: { originalBody: string; optimizedBody: string; explanation: string }
+  ): Promise<OptimizationVersion> {
     return this.prisma.optimizationVersion.create({
       data: {
         promptId,
@@ -220,21 +276,21 @@ export class PrismaOptimizationRepository implements IOptimizationRepository {
         optimizedBody: data.optimizedBody,
         explanation: data.explanation,
       },
-    }) as Promise<OptimizationVersion>;
+    });
   }
 
   async findByPrompt(promptId: string, userId: string): Promise<OptimizationVersion[]> {
     return this.prisma.optimizationVersion.findMany({
       where: { promptId, userId },
       orderBy: { createdAt: 'desc' },
-    }) as Promise<OptimizationVersion[]>;
+    });
   }
 
   async findLatest(promptId: string, userId: string): Promise<OptimizationVersion | null> {
     return this.prisma.optimizationVersion.findFirst({
       where: { promptId, userId },
       orderBy: { createdAt: 'desc' },
-    }) as Promise<OptimizationVersion | null>;
+    });
   }
 }
 

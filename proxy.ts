@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = await auth();
 
   const protectedRoutes = ['/library', '/folders', '/settings', '/api/prompts', '/api/folders', '/api/categories'];

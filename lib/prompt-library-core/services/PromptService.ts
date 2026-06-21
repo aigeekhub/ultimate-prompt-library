@@ -38,7 +38,7 @@ export class PromptService {
     userId: string,
     data: Partial<Omit<Prompt, 'id' | 'userId' | 'createdAt'>>
   ): Promise<Prompt> {
-    const prompt = await this.getPrompt(id, userId);
+    await this.getPrompt(id, userId);
     if (data.title !== undefined && !data.title.trim()) {
       throw new Error('Prompt title cannot be empty');
     }
