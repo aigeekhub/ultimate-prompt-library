@@ -1,6 +1,8 @@
 export * from './types/index';
 export * from './repositories/index';
 export * from './services/index';
+export * from './repositories/prisma';
+export { createLibraryWithPrisma, getPrismaClient, closePrismaConnection } from './utils/init';
 
 import type { IRepository } from './repositories/index';
 import { PromptService, FolderService, CategoryService, OptimizationService } from './services/index';

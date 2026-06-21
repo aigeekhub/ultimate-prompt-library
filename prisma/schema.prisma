@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id    String     @id @default(cuid())
+  email String     @unique
+  name  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts             Prompt[]
+  folders             Folder[]
+  categories          Category[]
+  optimizationVersions OptimizationVersion[]
+
+  @@map("users")
+}
+
+model Folder {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  prompts Prompt[]
+
+  @@index([userId])
+  @@map("folders")
+}
+
+model Prompt {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title     String
+  body      String
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  categories          PromptCategory[]
+  optimizationVersions OptimizationVersion[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@map("prompts")
+}
+
+model Category {
+  id    String @id @default(cuid())
+  userId String
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name  String
+  color String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts PromptCategory[]
+
+  @@index([userId])
+  @@map("categories")
+}
+
+model PromptCategory {
+  promptId   String
+  categoryId String
+  prompt     Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([promptId, categoryId])
+  @@map("prompt_categories")
+}
+
+model OptimizationVersion {
+  id           String     @id @default(cuid())
+  promptId     String
+  userId       String
+  prompt       Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originalBody String
+  optimizedBody String
+  explanation  String
+  createdAt    DateTime   @default(now())
+
+  @@index([promptId])
+  @@index([userId])
+  @@map("optimization_versions")
+}
