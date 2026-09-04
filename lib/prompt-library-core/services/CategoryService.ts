@@ -41,17 +41,31 @@ export class CategoryService {
   }
 
   async addCategoryToPrompt(promptId: string, categoryId: string, userId: string): Promise<void> {
-    await this.repository.prompts.findById(promptId, userId);
+    const prompt = await this.repository.prompts.findById(promptId, userId);
+    if (!prompt) {
+      throw new Error('Prompt not found');
+    }
     await this.getCategory(categoryId, userId);
     await this.repository.categories.addToPrompt(promptId, categoryId, userId);
   }
 
   async removeCategoryFromPrompt(promptId: string, categoryId: string, userId: string): Promise<void> {
+    const prompt = await this.repository.prompts.findById(promptId, userId);
+    if (!prompt) {
+      throw new Error('Prompt not found');
+    }
+    await this.getCategory(categoryId, userId);
     await this.repository.categories.removeFromPrompt(promptId, categoryId, userId);
   }
 
   async getPromptCategories(promptId: string, userId: string): Promise<Category[]> {
     await this.repository.prompts.findById(promptId, userId);
     return this.repository.categories.getPromptCategories(promptId, userId);
+  }
+
+  async findPromptIdsByCategory(categoryId: string, userId: string): Promise<Set<string>> {
+    // Verify the category exists and belongs to the user
+    await this.getCategory(categoryId, userId);
+    return this.repository.categories.findPromptIdsByCategory(categoryId, userId);
   }
 }

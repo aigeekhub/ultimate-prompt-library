@@ -26,9 +26,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const { id } = await params;
-  const data = await request.json();
 
   try {
+    const data = await request.json();
     const category = await library.categories.updateCategory(id, session.user.id, {
       name: data.name,
       color: data.color,

@@ -258,6 +258,14 @@ export class PrismaCategoryRepository implements ICategoryRepository {
     });
     return links.map((link) => toCategory(link.category));
   }
+
+  async findPromptIdsByCategory(categoryId: string, _userId: string): Promise<Set<string>> {
+    const links = await this.prisma.promptCategory.findMany({
+      where: { categoryId },
+      select: { promptId: true },
+    });
+    return new Set(links.map((link) => link.promptId));
+  }
 }
 
 export class PrismaOptimizationRepository implements IOptimizationRepository {

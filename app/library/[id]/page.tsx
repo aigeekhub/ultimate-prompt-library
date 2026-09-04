@@ -122,7 +122,12 @@ export default function PromptDetailPage() {
       }
 
       const updated = await res.json();
-      setPromptCategories(updated);
+      // Merge response with current state to avoid race conditions
+      // Only include categories not already present to avoid duplicates
+      setPromptCategories((prev) => {
+        const updatedIds = new Set(updated.map((c: Category) => c.id));
+        return [...updated, ...prev.filter((c) => !updatedIds.has(c.id))];
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add category');
     }

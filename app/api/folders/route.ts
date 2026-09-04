@@ -18,9 +18,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const data = await request.json();
-
   try {
+    const data = await request.json();
     const folder = await library.folders.createFolder(session.user.id, {
       name: data.name,
       description: data.description,

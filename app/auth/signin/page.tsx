@@ -15,7 +15,23 @@ export default function SignInPage() {
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/library';
+
+  // Validate callbackUrl to prevent open redirect attacks
+  const getValidatedCallbackUrl = (url: string | null): string => {
+    if (!url) return '/library';
+    try {
+      // Allow relative paths (start with /)
+      if (url.startsWith('/')) {
+        return url;
+      }
+      // Reject absolute URLs and javascript: protocols
+      return '/library';
+    } catch {
+      return '/library';
+    }
+  };
+
+  const callbackUrl = getValidatedCallbackUrl(searchParams.get('callbackUrl'));
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');

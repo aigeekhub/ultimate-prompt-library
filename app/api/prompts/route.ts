@@ -21,13 +21,7 @@ export async function GET(request: NextRequest) {
 
   // Filter by category
   if (categoryId) {
-    const promptIds = new Set<string>();
-    for (const prompt of prompts) {
-      const cats = await library.categories.getPromptCategories(prompt.id, session.user.id);
-      if (cats.some((c) => c.id === categoryId)) {
-        promptIds.add(prompt.id);
-      }
-    }
+    const promptIds = await library.categories.findPromptIdsByCategory(categoryId, session.user.id);
     prompts = prompts.filter((p) => promptIds.has(p.id));
   }
 
@@ -40,9 +34,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const data = await request.json();
-
   try {
+    const data = await request.json();
+
+    // Validate folder ownership if folderId is provided
+    if (data.folderId) {
+      try {
+        await library.folders.getFolder(data.folderId, session.user.id);
+      } catch {
+        return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+      }
+    }
+
     const prompt = await library.prompts.createPrompt(session.user.id, {
       title: data.title,
       body: data.body,

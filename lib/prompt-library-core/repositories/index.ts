@@ -27,6 +27,7 @@ export interface ICategoryRepository {
   addToPrompt(promptId: string, categoryId: string, userId: string): Promise<void>;
   removeFromPrompt(promptId: string, categoryId: string, userId: string): Promise<void>;
   getPromptCategories(promptId: string, userId: string): Promise<Category[]>;
+  findPromptIdsByCategory(categoryId: string, userId: string): Promise<Set<string>>;
 }
 
 export interface IOptimizationRepository {

@@ -26,9 +26,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const { id } = await params;
-  const data = await request.json();
 
   try {
+    const data = await request.json();
     const folder = await library.folders.updateFolder(id, session.user.id, {
       name: data.name,
       description: data.description,
