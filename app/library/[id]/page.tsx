@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Prompt } from '@/lib/prompt-library-core';
+import type { Prompt, Folder, Category } from '@/lib/prompt-library-core';
 
 export default function PromptDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,7 +13,12 @@ export default function PromptDetailPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [notes, setNotes] = useState('');
+  const [folderId, setFolderId] = useState('');
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [promptCategories, setPromptCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingLists, setLoadingLists] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notFound, setNotFound] = useState(false);
@@ -35,6 +40,7 @@ export default function PromptDetailPage() {
           setTitle(data.title);
           setBody(data.body);
           setNotes(data.notes ?? '');
+          setFolderId(data.folderId ?? '');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -47,6 +53,28 @@ export default function PromptDetailPage() {
     };
   }, [id]);
 
+  useEffect(() => {
+    async function loadLists() {
+      try {
+        const [foldersRes, categoriesRes, promptCatsRes] = await Promise.all([
+          fetch('/api/folders'),
+          fetch('/api/categories'),
+          fetch(`/api/prompts/${id}/categories`),
+        ]);
+
+        if (foldersRes.ok) setFolders(await foldersRes.json());
+        if (categoriesRes.ok) setCategories(await categoriesRes.json());
+        if (promptCatsRes.ok) setPromptCategories(await promptCatsRes.json());
+      } finally {
+        setLoadingLists(false);
+      }
+    }
+
+    if (!loading && id) {
+      loadLists();
+    }
+  }, [id, loading]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -56,7 +84,12 @@ export default function PromptDetailPage() {
       const res = await fetch(`/api/prompts/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, notes: notes || undefined }),
+        body: JSON.stringify({
+          title,
+          body,
+          notes: notes || undefined,
+          folderId: folderId || undefined,
+        }),
       });
 
       if (!res.ok) {
@@ -70,6 +103,44 @@ export default function PromptDetailPage() {
       setError(err instanceof Error ? err.message : 'Failed to save prompt');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAddCategory = async (categoryId: string) => {
+    setError('');
+    try {
+      const res = await fetch(`/api/prompts/${id}/categories`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add category');
+      }
+
+      const updated = await res.json();
+      setPromptCategories(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add category');
+    }
+  };
+
+  const handleRemoveCategory = async (categoryId: string) => {
+    setError('');
+    try {
+      const res = await fetch(`/api/prompts/${id}/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to remove category');
+      }
+
+      setPromptCategories((prev) => prev.filter((c) => c.id !== categoryId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove category');
     }
   };
 
@@ -176,6 +247,74 @@ export default function PromptDetailPage() {
               rows={3}
               className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
             />
+          </div>
+
+          <div>
+            <label htmlFor="folder" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Folder (optional)
+            </label>
+            <select
+              id="folder"
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              disabled={loadingLists}
+              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              <option value="">-- No folder --</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Categories
+            </label>
+            <div className="space-y-2">
+              {promptCategories.length > 0 && (
+                <div className="space-y-2">
+                  {promptCategories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+                    >
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {cat.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCategory(cat.id)}
+                        className="text-xs font-medium text-red-600 hover:text-red-500 dark:text-red-400"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddCategory(e.target.value);
+                    e.target.value = '';
+                  }
+                }}
+                disabled={loadingLists}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              >
+                <option value="">-- Add category --</option>
+                {categories
+                  .filter((c) => !promptCategories.some((pc) => pc.id === c.id))
+                  .map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
