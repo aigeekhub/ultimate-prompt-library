@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String    @id @default(cuid())
+  email    String    @unique
+  password String?
+  name     String?
+  image    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  prompts             Prompt[]
+  folders             Folder[]
+  categories          Category[]
+  optimizationVersions OptimizationVersion[]
+
+  @@map("users")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String  @unique
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Folder {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  prompts Prompt[]
+
+  @@index([userId])
+  @@map("folders")
+}
+
+model Prompt {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title     String
+  body      String
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  categories          PromptCategory[]
+  optimizationVersions OptimizationVersion[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@map("prompts")
+}
+
+model Category {
+  id    String @id @default(cuid())
+  userId String
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name  String
+  color String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts PromptCategory[]
+
+  @@index([userId])
+  @@map("categories")
+}
+
+model PromptCategory {
+  promptId   String
+  categoryId String
+  prompt     Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([promptId, categoryId])
+  @@map("prompt_categories")
+}
+
+model OptimizationVersion {
+  id           String     @id @default(cuid())
+  promptId     String
+  userId       String
+  prompt       Prompt     @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originalBody String
+  optimizedBody String
+  explanation  String
+  createdAt    DateTime   @default(now())
+
+  @@index([promptId])
+  @@index([userId])
+  @@map("optimization_versions")
+}
