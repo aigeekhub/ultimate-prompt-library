@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AppLayout from '@/app/components/AppLayout';
 import type { Prompt, Folder, Category } from '@/lib/prompt-library-core';
 
 export default function PromptDetailPage() {
@@ -163,28 +164,33 @@ export default function PromptDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-black px-4 py-8">
-        <p className="max-w-2xl mx-auto text-gray-500 dark:text-gray-400">Loading...</p>
-      </div>
+      <AppLayout>
+        <div className="px-4 py-8">
+          <p className="max-w-2xl mx-auto text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+      </AppLayout>
     );
   }
 
   if (notFound || !prompt) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-black px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <p className="text-gray-500 dark:text-gray-400">Prompt not found.</p>
-          <Link href="/library" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
-            Back to library
-          </Link>
+      <AppLayout>
+        <div className="px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <p className="text-gray-500 dark:text-gray-400">Prompt not found.</p>
+            <Link href="/library" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              Back to library
+            </Link>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black px-4 py-8">
-      <div className="max-w-2xl mx-auto">
+    <AppLayout>
+      <div className="px-4 py-8">
+        <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Prompt</h1>
           <Link href="/library" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
@@ -334,7 +340,8 @@ export default function PromptDetailPage() {
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

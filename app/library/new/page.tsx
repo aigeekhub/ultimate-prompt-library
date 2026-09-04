@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AppLayout from '@/app/components/AppLayout';
 import type { Folder } from '@/lib/prompt-library-core';
 
 export default function NewPromptPage() {
@@ -63,16 +64,17 @@ export default function NewPromptPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Prompt</h1>
-          <Link href="/library" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
-            Back to library
-          </Link>
-        </div>
+    <AppLayout>
+      <div className="px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">New Prompt</h1>
+            <Link href="/library" className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              ← Back to library
+            </Link>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
               <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
@@ -150,8 +152,9 @@ export default function NewPromptPage() {
           >
             {saving ? 'Saving...' : 'Save Prompt'}
           </button>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
